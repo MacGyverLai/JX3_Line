@@ -1,7 +1,7 @@
 import os, sys
 
 from .models import (
-    Statement, Reply, Communication, Statement_Flow, Reply_Set,
+    LineUser, Statement, Reply, Communication, KeyWord, Statement_Flow, Reply_Set,
 )
 
 def parsing(text):
@@ -9,14 +9,16 @@ def parsing(text):
     statement_flows = Statement_Flow.objects.filter(flow_order=parsing_order)
 
     for row in statement_flows:
-        try:
-            tmpIndex = text.index(row.statement.statement_text)
-            sub_text = text[tmpIndex + len(row.statement.statement_text):]
-            rtnObj = parsingRecursive(sub_text, parsing_order + 1, row.communication)
-            if rtnObj != None:
-                return rtnObj
-        except ValueError:
-            continue
+        keyWordList = row.statement.keyword_set.all()
+        for keyWord in keyWordList:
+            try:
+                tmpIndex = text.index(keyWord.word)
+                sub_text = text[tmpIndex + len(keyWord.word):]
+                rtnObj = parsingRecursive(sub_text, parsing_order + 1, row.communication)
+                if rtnObj != None:
+                    return rtnObj
+            except ValueError:
+                continue
 
     return None
 
@@ -27,19 +29,38 @@ def parsingRecursive(text, parsing_order, communication):
     if len(statement_flows) < 1:
         return communication
     for row in statement_flows:
-        try:
-            tmpIndex = text.index(row.statement.statement_text)
-            sub_text = text[tmpIndex + len(row.statement.statement_text):]
-            return parsingRecursive(sub_text, parsing_order + 1, row.communication)
-        except ValueError:
-            continue
+        keyWordList = row.statement.keyword_set.all()
+        for keyWord in keyWordList:
+            try:
+                tmpIndex = text.index(keyWord.word)
+                sub_text = text[tmpIndex + len(keyWord.word):]
+                return parsingRecursive(sub_text, parsing_order + 1, row.communication)
+            except ValueError:
+                continue
 
     return None
 
 
 #def motionResponse(text):
 
-#def personRecognition():
+
+# 'U1ed1b508268a0e1fc8c302e8894994d8'
+def getLineUser(userId):
+    user = LineUser.objects.filter(line_id=userId)
+    if len(user) > 0:
+        return user[0]
+
+def personRecognition(user):
+    print('into personRecognition....')
+
+    if user == None:
+        return '你好啊，大兄弟~'
+    elif user.nickname == '芋頭':
+        return '芋~頭~~~~~~~~~'
+    else:
+        return '哈嘍~ ' + user.nickname
+
+
 
 def handleAdminCommand(text):
     tmpCommunication = None
@@ -54,11 +75,12 @@ def handleAdminCommand(text):
 
         flowOrder = 0
         for keyWord in keyWordList:
-            tmpStatementList = Statement.objects.filter(statement_text=keyWord)
-            if (len(tmpStatementList) < 1):
-                tmpStatement = Statement.objects.create(statement_text=keyWord)
+            tmpKeyWordList = KeyWord.objects.filter(word=keyWord)
+            if (len(tmpKeyWordList) < 1):
+                tmpStatement = Statement.objects.create()
+                tmpKeyWord = KeyWord.objects.create(word=keyWord, statement=tmpStatement)
             else:
-                tmpStatement = tmpStatementList[0]
+                tmpStatement = tmpKeyWordList[0].statement
             Statement_Flow.objects.create(statement=tmpStatement, \
                     communication=tmpCommunication, flow_order=flowOrder)
             flowOrder = flowOrder + 1
@@ -76,11 +98,12 @@ def handleAdminCommand(text):
 
         flowOrder = 0
         for keyWord in keyWordList:
-            tmpStatementList = Statement.objects.filter(statement_text=keyWord)
-            if (len(tmpStatementList) < 1):
-                tmpStatement = Statement.objects.create(statement_text=keyWord)
+            tmpKeyWordList = KeyWord.objects.filter(word=keyWord)
+            if (len(tmpKeyWordList) < 1):
+                tmpStatement = Statement.objects.create()
+                tmpKeyWord = KeyWord.objects.create(word=keyWord, statement=tmpStatement)
             else:
-                tmpStatement = tmpStatementList[0]
+                tmpStatement = tmpKeyWordList[0].statement
             Statement_Flow.objects.create(statement=tmpStatement, \
                     communication=tmpCommunication, flow_order=flowOrder)
             flowOrder = flowOrder + 1
