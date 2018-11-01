@@ -4,11 +4,21 @@ from .models import (
     LineUser, Statement, Reply, Communication, KeyWord, Statement_Flow, Reply_Set,
 )
 
+def sortStatement(target):
+    keyWordList = target.statement.keyword_set.all()
+    currentBig = 0
+    for keyWord in keyWordList:
+        if len(keyWord.word) > currentBig:
+            currentBig = len(keyWord.word)
+
+    return currentBig
+
+
 def parsing(text):
     parsing_order = 0
     statement_flows = Statement_Flow.objects.filter(flow_order=parsing_order)
 
-    for row in statement_flows:
+    for row in sorted(statement_flows, key=sortStatement, reverse=True):
         keyWordList = row.statement.keyword_set.all()
         for keyWord in keyWordList:
             try:
@@ -28,7 +38,7 @@ def parsingRecursive(text, parsing_order, communication):
 
     if len(statement_flows) < 1:
         return communication
-    for row in statement_flows:
+    for row in sorted(statement_flows, key=sortStatement, reverse=True):
         keyWordList = row.statement.keyword_set.all()
         for keyWord in keyWordList:
             try:
@@ -41,7 +51,14 @@ def parsingRecursive(text, parsing_order, communication):
     return None
 
 
-#def motionResponse(text):
+def motionResponse(text):
+    try:
+        if ('哈哈哈哈' in text) or ('XDDD' in text) or ('呵呵呵' in text):
+            return 'XDDDD'
+        elif '666' in text:
+            return '真這麽666'
+    except ValueError:
+        return None
 
 
 # 'U1ed1b508268a0e1fc8c302e8894994d8'
@@ -53,13 +70,37 @@ def getLineUser(userId):
 def personRecognition(user):
     print('into personRecognition....')
 
+    tailMessage = '！你想問我什麽，也許換個問法試試？\n' + \
+            '也可以喊『16 幫幫我』我會給你提問範例~\n' + \
+            '目前五毒、唐門、明教、丐幫、長歌、霸刀的資料建制中'
     if user == None:
-        return '你好啊，大兄弟~'
+        return '你好啊，大兄弟' + tailMessage
     elif user.nickname == '芋頭':
-        return '芋~頭~~~~~~~~~'
+        return '芋~~頭~~~~~~~~~(開心' + tailMessage
     else:
-        return '哈嘍~ ' + user.nickname
+        return '哈嘍~ ' + user.nickname + tailMessage
 
+def handleUserCommand(text, userId):
+    if text[0:11] == 'rememberMe ':
+        nameList = text[11:].split(';')
+        fullName = None
+        nickName = None
+        if len(nameList) > 1:
+            fullName = nameList[0]
+            nickName = nameList[1]
+        else:
+            nickName = nameList[0]
+
+        user = LineUser.objects.filter(line_id=userId)
+        if len(user) > 0:
+            if fullName != None:
+                user.full_name = fullName
+            if nickName != None:
+                user.nickname = nickName
+            user.save()
+        else:
+            LineUser.objects.create(line_id=userId, full_name=fullName, \
+                    nickname=nickName)
 
 
 def handleAdminCommand(text):
@@ -118,5 +159,21 @@ def handleAdminCommand(text):
         for keyAnswer in keyAnswerList:
             tmpReply = Reply.objects.create(reply_text=keyAnswer)
             Reply_Set.objects.create(reply=tmpReply, communication=tmpCommunication)
+
+    elif text[0:11] == 'addKeyword ':
+        # addKeyword 氣純|紫霞功
+        print('into add keyword....')
+        keywordList = text[11:].split('|')
+
+        tmpStatement = None
+        for keyword in keywordList:
+            tmpKeyword = KeyWord.objects.filter(word=keyword)
+            if len(tmpKeyword) > 0:
+                tmpStatement = tmpKeyword[0].statement
+        if tmpStatement == None:
+            tmpStatement = Statement.objects.create()
+
+        for keyword in keywordList:
+            KeyWord.objects.create(word=keyword, statement=tmpStatement)
 
     return tmpCommunication

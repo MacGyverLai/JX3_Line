@@ -46,6 +46,7 @@ def handle_text_message(event):
     else:
         # handle motionResponse
         print('into handle motionResponse')
+        reply_message = language.motionResponse(org_text)
 
     if (reply_message == None) and (org_text[0:2] == '16'):
         lineUser = language.getLineUser(event.source.user_id)

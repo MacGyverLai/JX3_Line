@@ -51,6 +51,8 @@ class Communication(models.Model):
 class KeyWord(models.Model):
     word = models.CharField(max_length = 50)
 
+    count = models.IntegerField(default = 0)
+
     statement = models.ForeignKey(Statement, on_delete = models.CASCADE)
 
     def __str__(self):
